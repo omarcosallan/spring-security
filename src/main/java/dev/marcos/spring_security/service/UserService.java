@@ -6,6 +6,9 @@ import dev.marcos.spring_security.entity.User;
 import dev.marcos.spring_security.entity.enums.Role;
 import dev.marcos.spring_security.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -13,7 +16,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
@@ -50,5 +53,11 @@ public class UserService {
                         u.getLastName()
                 ))
                 .toList();
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
     }
 }

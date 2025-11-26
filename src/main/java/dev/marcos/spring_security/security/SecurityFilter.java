@@ -1,7 +1,7 @@
 package dev.marcos.spring_security.security;
 
-import dev.marcos.spring_security.service.CustomUserDetailsService;
 import dev.marcos.spring_security.service.TokenService;
+import dev.marcos.spring_security.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,7 +22,7 @@ import java.util.Optional;
 public class SecurityFilter extends OncePerRequestFilter {
 
     private final TokenService tokenService;
-    private final CustomUserDetailsService customUserDetailsService;
+    private final UserService userService;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -35,7 +35,7 @@ public class SecurityFilter extends OncePerRequestFilter {
             String subject = tokenService.validateToken(token.get())
                     .orElseThrow(() -> new RuntimeException("Invalid token"));
 
-            UserDetails user = customUserDetailsService.loadUserByUsername(subject);
+            UserDetails user = userService.loadUserByUsername(subject);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     user,
