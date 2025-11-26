@@ -10,3 +10,6 @@ spring:
     properties:
       hibernate:
         format_sql: ${FORMAT_SQL:false}
+  security:
+    token:
+      secret: ${SECURITY_TOKEN_SECRET:secret-jwt-token-key-dev}
