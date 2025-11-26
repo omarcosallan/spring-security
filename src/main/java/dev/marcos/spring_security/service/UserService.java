@@ -4,6 +4,8 @@ import dev.marcos.spring_security.dto.user.UserRequestDTO;
 import dev.marcos.spring_security.dto.user.UserResponseDTO;
 import dev.marcos.spring_security.entity.User;
 import dev.marcos.spring_security.entity.enums.Role;
+import dev.marcos.spring_security.exception.ConflictException;
+import dev.marcos.spring_security.exception.NotFoundException;
 import dev.marcos.spring_security.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,8 +23,11 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
 
     public UserResponseDTO save(UserRequestDTO dto) {
-        if (userRepository.existsByEmailOrUsername(dto.email(), dto.username())) {
-            throw new RuntimeException("Email or username already exists");
+        if (userRepository.existsByEmail(dto.email())) {
+            throw new ConflictException("Email already exists, please, try other email address");
+        }
+        if (userRepository.existsByUsername(dto.username())) {
+            throw new ConflictException("Username already exists, please, try other username");
         }
 
         User user = new User();
@@ -58,6 +63,6 @@ public class UserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+                .orElseThrow(() -> new NotFoundException("User not found with username: " + username));
     }
 }
