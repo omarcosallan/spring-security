@@ -6,6 +6,7 @@ import dev.marcos.spring_security.entity.User;
 import dev.marcos.spring_security.entity.enums.Role;
 import dev.marcos.spring_security.exception.ConflictException;
 import dev.marcos.spring_security.exception.NotFoundException;
+import dev.marcos.spring_security.mapper.UserMapper;
 import dev.marcos.spring_security.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,6 +22,7 @@ import java.util.List;
 public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     public UserResponseDTO save(UserRequestDTO dto) {
         if (userRepository.existsByEmail(dto.email())) {
@@ -30,34 +32,17 @@ public class UserService implements UserDetailsService {
             throw new ConflictException("Username already exists, please, try other username");
         }
 
-        User user = new User();
-        user.setEmail(dto.email());
-        user.setUsername(dto.username());
-        user.setFirstName(dto.firstName());
-        user.setLastName(dto.lastName());
+        User user = userMapper.toEntity(dto);
         user.getRoles().add(Role.ROLE_USER);
         user.setPassword(new BCryptPasswordEncoder().encode(dto.password()));
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        return new UserResponseDTO(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName()
-        );
+        return userMapper.toDTO(savedUser);
     }
 
     public List<UserResponseDTO> findAll() {
-        return userRepository.findAll().stream().map(u -> new UserResponseDTO(
-                        u.getId(),
-                        u.getUsername(),
-                        u.getEmail(),
-                        u.getFirstName(),
-                        u.getLastName()
-                ))
-                .toList();
+        return userRepository.findAll().stream().map(userMapper::toDTO).toList();
     }
 
     @Override
