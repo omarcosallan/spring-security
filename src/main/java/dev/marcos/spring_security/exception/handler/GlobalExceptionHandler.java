@@ -6,6 +6,8 @@ import dev.marcos.spring_security.exception.NotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -18,9 +20,35 @@ import java.util.stream.Collectors;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ProblemDetail> handleAuthenticationException(
+            AuthenticationException ex, HttpServletRequest request) {
+
+        ProblemDetail problem = new ProblemDetail(
+                        "Authentication error",
+                        ex.getMessage(),
+                        HttpStatus.UNAUTHORIZED.value(),
+                        getRequestPath(request));
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ProblemDetail> handleBadCredentialsException(HttpServletRequest request) {
+
+        ProblemDetail problem = new ProblemDetail(
+                        "Authentication failed",
+                        "Invalid username or password",
+                        HttpStatus.UNAUTHORIZED.value(),
+                        getRequestPath(request));
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ProblemDetail> handleMethodArgumentNotValidException(MethodArgumentNotValidException e, HttpServletRequest request) {
+    public ResponseEntity<ProblemDetail> handleMethodArgumentNotValidException(
+            MethodArgumentNotValidException e, HttpServletRequest request) {
+
         Map<String, String> errors =
                 e.getBindingResult().getFieldErrors().stream()
                         .collect(
