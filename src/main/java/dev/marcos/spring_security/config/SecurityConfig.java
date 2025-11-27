@@ -1,5 +1,7 @@
 package dev.marcos.spring_security.config;
 
+import dev.marcos.spring_security.security.CustomAccessDeniedHandler;
+import dev.marcos.spring_security.security.CustomAuthenticationEntryPoint;
 import dev.marcos.spring_security.security.SecurityFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +22,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final SecurityFilter securityFilter;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Bean
     protected SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -38,6 +42,10 @@ public class SecurityConfig {
                         // ADMIN or USER operations
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(exception ->
+                        exception
+                                .accessDeniedHandler(customAccessDeniedHandler)
+                                .authenticationEntryPoint(customAuthenticationEntryPoint))
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
