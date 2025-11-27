@@ -69,6 +69,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
     }
 
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetail> handleGenericException(HttpServletRequest request) {
+
+        ProblemDetail problem = new ProblemDetail(
+                "Internal server error",
+                "An unexpected error occurred",
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                getRequestPath(request));
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
+    }
+
     private String getRequestPath(HttpServletRequest request) {
         return request.getRequestURI();
     }
