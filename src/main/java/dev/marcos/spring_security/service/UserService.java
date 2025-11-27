@@ -10,6 +10,7 @@ import dev.marcos.spring_security.exception.NotFoundException;
 import dev.marcos.spring_security.mapper.UserMapper;
 import dev.marcos.spring_security.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -17,6 +18,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -61,7 +63,14 @@ public class UserService implements UserDetailsService {
     }
 
     public void delete(UUID id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found with id: " + id));
+        User user = userRepository.findByIdAndActiveIsTrue(id).orElseThrow(() -> new NotFoundException("User not found with id: " + id));
+
+        User currentUser = (User) Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getPrincipal();
+        assert currentUser != null;
+
+        if (user.getId().equals(currentUser.getId())) {
+            throw new ConflictException("You cannot delete your account");
+        }
 
         if (user.getRoles().contains(Role.ROLE_ADMIN)) {
             throw new ConflictException("You cannot delete an admin user");
