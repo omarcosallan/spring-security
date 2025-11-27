@@ -6,11 +6,40 @@ import dev.marcos.spring_security.exception.NotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ProblemDetail> handleMethodArgumentNotValidException(MethodArgumentNotValidException e, HttpServletRequest request) {
+        Map<String, String> errors =
+                e.getBindingResult().getFieldErrors().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        FieldError::getField,
+                                        fieldError ->
+                                                Optional.ofNullable(fieldError.getDefaultMessage())
+                                                        .orElse("Invalid value")));
+
+        ProblemDetail problem = new ProblemDetail(
+                        "Validation error",
+                        "One or more fields are invalid",
+                        HttpStatus.BAD_REQUEST.value(),
+                        getRequestPath(request));
+
+        problem.setProperty("errors", errors);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+    }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ProblemDetail> handleEntityNotFound(
