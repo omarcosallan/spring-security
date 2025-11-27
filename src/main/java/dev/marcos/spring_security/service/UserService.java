@@ -2,6 +2,7 @@ package dev.marcos.spring_security.service;
 
 import dev.marcos.spring_security.dto.user.UserRequestDTO;
 import dev.marcos.spring_security.dto.user.UserResponseDTO;
+import dev.marcos.spring_security.dto.user.UserUpdateRequestDTO;
 import dev.marcos.spring_security.entity.User;
 import dev.marcos.spring_security.entity.enums.Role;
 import dev.marcos.spring_security.exception.ConflictException;
@@ -16,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -37,12 +39,37 @@ public class UserService implements UserDetailsService {
         user.setPassword(new BCryptPasswordEncoder().encode(dto.password()));
 
         User savedUser = userRepository.save(user);
-
         return userMapper.toDTO(savedUser);
     }
 
     public List<UserResponseDTO> findAll() {
         return userRepository.findAll().stream().map(userMapper::toDTO).toList();
+    }
+
+    public UserResponseDTO update(UUID id, UserUpdateRequestDTO dto) {
+        User user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found with id: " + id));
+
+        if (dto.firstName() != null) {
+            user.setFirstName(dto.firstName());
+        }
+        if (dto.lastName() != null) {
+            user.setLastName(dto.lastName());
+        }
+
+        User savedUser = userRepository.save(user);
+        return userMapper.toDTO(savedUser);
+    }
+
+    public void delete(UUID id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found with id: " + id));
+
+        if (user.getRoles().contains(Role.ROLE_ADMIN)) {
+            throw new ConflictException("You cannot delete an admin user");
+        }
+
+        user.setActive(false);
+
+        userRepository.save(user);
     }
 
     @Override
