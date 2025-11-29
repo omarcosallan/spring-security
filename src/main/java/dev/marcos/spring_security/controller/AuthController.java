@@ -23,4 +23,10 @@ public class AuthController {
         TokenDTO token = authService.authenticate(dto);
         return ResponseEntity.ok(token);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() {
+        authService.logout();
+        return ResponseEntity.ok().build();
+    }
 }
