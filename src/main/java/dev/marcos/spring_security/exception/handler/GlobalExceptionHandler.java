@@ -8,6 +8,7 @@ import dev.marcos.spring_security.exception.NotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -15,6 +16,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -80,6 +82,45 @@ public class GlobalExceptionHandler {
                 getRequestPath(request));
 
         problem.setProperty("errors", errors);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ProblemDetail> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+
+        String detail =
+                String.format(
+                        "Parameter '%s' has invalid value '%s'. Expected type: %s",
+                        ex.getName(),
+                        ex.getValue(),
+                        ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown");
+
+        ProblemDetail problem = new ProblemDetail(
+                "Invalid parameter",
+                detail,
+                HttpStatus.BAD_REQUEST.value(),
+                getRequestPath(request));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ProblemDetail> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
+
+        String detail = "Request body is invalid or malformed";
+
+        if (ex.getCause() != null) {
+            detail += ": " + ex.getCause().getMessage();
+        }
+
+        ProblemDetail problem = new ProblemDetail(
+                "Malformed JSON request",
+                detail,
+                HttpStatus.BAD_REQUEST.value(),
+                getRequestPath(request));
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
