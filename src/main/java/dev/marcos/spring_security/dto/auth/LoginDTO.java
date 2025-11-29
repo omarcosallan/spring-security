@@ -1,4 +1,4 @@
-package dev.marcos.spring_security.dto.login;
+package dev.marcos.spring_security.dto.auth;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;

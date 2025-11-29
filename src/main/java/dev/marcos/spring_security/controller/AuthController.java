@@ -1,7 +1,8 @@
 package dev.marcos.spring_security.controller;
 
-import dev.marcos.spring_security.dto.login.LoginDTO;
-import dev.marcos.spring_security.dto.login.TokenDTO;
+import dev.marcos.spring_security.dto.auth.LoginDTO;
+import dev.marcos.spring_security.dto.auth.RefreshTokenDTO;
+import dev.marcos.spring_security.dto.auth.TokenDTO;
 import dev.marcos.spring_security.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,11 @@ public class AuthController {
     public ResponseEntity<TokenDTO> login(@Valid @RequestBody LoginDTO dto) {
         TokenDTO token = authService.authenticate(dto);
         return ResponseEntity.ok(token);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenDTO> refresh(@Valid @RequestBody RefreshTokenDTO dto) {
+        return ResponseEntity.ok(authService.refresh(dto));
     }
 
     @PostMapping("/logout")

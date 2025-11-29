@@ -1,8 +1,10 @@
 package dev.marcos.spring_security.service;
 
-import dev.marcos.spring_security.dto.login.LoginDTO;
-import dev.marcos.spring_security.dto.login.TokenDTO;
+import dev.marcos.spring_security.dto.auth.LoginDTO;
+import dev.marcos.spring_security.dto.auth.RefreshTokenDTO;
+import dev.marcos.spring_security.dto.auth.TokenDTO;
 import dev.marcos.spring_security.entity.User;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,11 +24,18 @@ public class AuthService {
     public TokenDTO authenticate(LoginDTO dto) {
         UsernamePasswordAuthenticationToken usernamePassword  = new UsernamePasswordAuthenticationToken(dto.username(), dto.password());
         Authentication auth = authenticationManager.authenticate(usernamePassword);
-        String token = tokenService.generateToken((User) Objects.requireNonNull(auth.getPrincipal()));
+        User user = (User) Objects.requireNonNull(auth.getPrincipal());
+        String token = tokenService.generateToken(user.getUsername());
         return new TokenDTO(token);
     }
 
     public void logout() {
         SecurityContextHolder.clearContext();
+    }
+
+    public TokenDTO refresh(@Valid RefreshTokenDTO dto) {
+        String username = tokenService.validateToken(dto.refreshToken());
+        String token = tokenService.generateRefreshToken(username);
+        return new TokenDTO(token);
     }
 }
