@@ -1,5 +1,7 @@
 package dev.marcos.spring_security.exception.handler;
 
+import com.auth0.jwt.exceptions.JWTCreationException;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import dev.marcos.spring_security.dto.error.ProblemDetail;
 import dev.marcos.spring_security.exception.ConflictException;
 import dev.marcos.spring_security.exception.NotFoundException;
@@ -26,10 +28,10 @@ public class GlobalExceptionHandler {
             AuthenticationException ex, HttpServletRequest request) {
 
         ProblemDetail problem = new ProblemDetail(
-                        "Authentication error",
-                        ex.getMessage(),
-                        HttpStatus.UNAUTHORIZED.value(),
-                        getRequestPath(request));
+                "Authentication error",
+                ex.getMessage(),
+                HttpStatus.UNAUTHORIZED.value(),
+                getRequestPath(request));
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
@@ -38,10 +40,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> handleBadCredentialsException(HttpServletRequest request) {
 
         ProblemDetail problem = new ProblemDetail(
-                        "Authentication failed",
-                        "Invalid username or password",
-                        HttpStatus.UNAUTHORIZED.value(),
-                        getRequestPath(request));
+                "Authentication failed",
+                "Invalid username or password",
+                HttpStatus.UNAUTHORIZED.value(),
+                getRequestPath(request));
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
@@ -72,14 +74,31 @@ public class GlobalExceptionHandler {
                                                         .orElse("Invalid value")));
 
         ProblemDetail problem = new ProblemDetail(
-                        "Validation error",
-                        "One or more fields are invalid",
-                        HttpStatus.BAD_REQUEST.value(),
-                        getRequestPath(request));
+                "Validation error",
+                "One or more fields are invalid",
+                HttpStatus.BAD_REQUEST.value(),
+                getRequestPath(request));
 
         problem.setProperty("errors", errors);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+    }
+
+    @ExceptionHandler({
+            JWTVerificationException.class,
+            JWTCreationException.class
+    })
+    public ResponseEntity<ProblemDetail> handleTokenException(
+            JWTVerificationException ex, HttpServletRequest request) {
+
+        ProblemDetail problem = new ProblemDetail(
+                "Invalid token",
+                "The required authentication information is invalid. The token is either invalid or has expired",
+                HttpStatus.UNAUTHORIZED.value(),
+                getRequestPath(request)
+        );
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
 
     @ExceptionHandler(NotFoundException.class)

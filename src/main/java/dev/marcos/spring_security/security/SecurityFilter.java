@@ -35,8 +35,7 @@ public class SecurityFilter extends OncePerRequestFilter {
             Optional<String> token = extractToken(request);
 
             if (token.isPresent()) {
-                String subject = tokenService.validateToken(token.get())
-                        .orElseThrow(() -> new RuntimeException("Invalid token"));
+                String subject = tokenService.validateToken(token.get());
 
                 UserDetails user = userService.loadUserByUsername(subject);
 
