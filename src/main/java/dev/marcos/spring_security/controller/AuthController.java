@@ -29,10 +29,4 @@ public class AuthController {
     public ResponseEntity<TokenDTO> refresh(@Valid @RequestBody RefreshTokenDTO dto) {
         return ResponseEntity.ok(authService.refresh(dto));
     }
-
-    @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
-        authService.logout();
-        return ResponseEntity.ok().build();
-    }
 }
