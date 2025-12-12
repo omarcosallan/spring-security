@@ -2,6 +2,7 @@ package dev.marcos.spring_security.config;
 
 import dev.marcos.spring_security.security.CustomAccessDeniedHandler;
 import dev.marcos.spring_security.security.CustomAuthenticationEntryPoint;
+import dev.marcos.spring_security.security.OAuth2LoginSuccessHandler;
 import dev.marcos.spring_security.security.SecurityFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +25,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final SecurityFilter securityFilter;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
@@ -32,7 +34,10 @@ public class SecurityConfig {
         return http.
                 csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorize -> authorize
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2LoginSuccessHandler)
+                        .failureUrl("/login?error=ture")
+                ).authorizeHttpRequests(authorize -> authorize
                         // Public endpoints
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/users").permitAll()

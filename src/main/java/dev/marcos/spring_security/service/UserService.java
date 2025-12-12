@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -79,6 +80,10 @@ public class UserService implements UserDetailsService {
         user.setActive(false);
 
         userRepository.save(user);
+    }
+
+    public Optional<User> findByEmailOrUsername(String email, String username) {
+        return userRepository.findByEmailOrUsername(email, username);
     }
 
     @Override

@@ -13,3 +13,9 @@ spring:
   security:
     token:
       secret: ${SECURITY_TOKEN_SECRET:secret-jwt-token-key-dev}
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
