@@ -2,273 +2,77 @@
 Este repositório contém um exemplo de aplicação Spring Boot que demonstra a implementação e configuração básica do Spring Security.
 O objetivo é fornecer autenticação básica e autorização baseada em URLs, protegendo endpoints específicos e permitindo acesso a outros.
 
-## 1. Configuração do Projeto
-Crie um novo projeto com [Spring Initializer](https://start.spring.io/) ou configure um projeto existente.
+## Tecnologias Utilizadas
+- Java 17
+- Spring Boot 4
+- Spring Web
+- Spring Data JPA
+- Spring Security
+- Lombok
+- PostgreSQL
+- Maven
+- JWT
 
-### 1.1 Dependências Maven
-```
-<dependencies>
-  <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-security</artifactId>
-  </dependency>
-  <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-security-test</artifactId>
-    <scope>test</scope>
-  </dependency>
+## Configuração do projeto
+O projeto foi criado com [Spring Initializer](https://start.spring.io/).
 
-  <dependency>
-    <groupId>com.auth0</groupId>
-    <artifactId>java-jwt</artifactId>
-    <version>4.4.0</version>
-  </dependency>
-</dependencies>
-```
+## Dependências
+- Spring Web
+- Spring Data JPA
+- Spring Security
+- Java JWT
+- Oauth2 client
+- Validation
+- PostgreSQL Driver
+- Lombok
+- MapStruct
+- Spring Boot DevTools
+
 > [!NOTE]
 > 💡 Ao adicionar `spring-boot-starter-security`, o Spring Boot automaticamente exige autenticação para todos os endpoints por padrão.
 
-### 1.2 Propriedade Secreta
-Adicione a chave secreta para assinar os tokens JWT no seu application.properties (ou .yml):
-```
-Properties
+## Como Rodar a Aplicação
+1.  **Pré-requisito:** Tenha o Java 17 (ou superior) e o Maven instalados. Tenha uma instância do PostgreSQL rodando.
+2.  Crie um banco de dados no PostgreSQL (ex: `CREATE DATABASE security_db;`).
+3.  Configure suas credenciais do banco no arquivo `src/main/resources/application.yaml`.
+4.  Abra o projeto em sua IDE (ex: IntelliJ IDEA).
+5.  Execute a classe principal `SpringSecurityApplication.java`.
+6.  O servidor estará rodando em `http://localhost:8080`.
 
-spring.security.token.secret=SUA_CHAVE_SECRETA_MUITO_LONGA_E_COMPLEXA
-```
+## Endpoints da API
 
-## 2. Configuração do Spring Security
-Para personalizar o comportamento padrão do Spring Security, é necessário criar uma classe de configuração. No Spring Boot 3+, o método recomendado é a definição de beans para a cadeia de filtros de segurança `SecurityFilterChain`.
+#### Autenticação
 
-### 2.1 Serviço de Token
-```
-package dev.marcos.spring_security.service;
+- **`POST /api/users`**
+    - Cadastra um novo usuário.
+    - **Body**: `{ "username": "user", "email": "user@example.com", "fisrtName": "User", "lastName": "Teste", "password": "password123" }`
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+- **`POST /api/auth/login`**
+    - Autentica um usuário e retorna um token JWT.
+    - **Body**: `{ "username": "user", "password": "password123" }`
+    - **Retorno**: `{ "token": "seu-jwt-token" }`
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
+- **`GET /oauth2/authorization/github`**
+    - Autentica um usuário com login social do GitHub e retorna um token JWT.
+    - **Retorno**: `{ "token": "seu-jwt-token" }`
 
-@Service
-public class TokenService {
+#### Usuários (Protegido)
+- **`PUT /api/users/{id}`**
+    - Atualiza um usuário dado o seu id.
+    - **Header Obrigatório**: `Authorization: Bearer <seu-jwt-token>`
 
-    private final Algorithm algorithm;
-
-    public TokenService(@Value("${spring.security.token.secret}") String secret) {
-        this.algorithm = Algorithm.HMAC256(secret);
-    }
-
-    public String generateToken(String username) {
-        return JWT.create().withSubject(username).withExpiresAt(Date.from(generateExpirationHours(1))).sign(algorithm);
-    }
-
-    public String validateToken(String token) {
-        return JWT.require(algorithm).build().verify(token).getSubject();
-    }
-
-    public String generateRefreshToken(String username) {
-        return JWT.create()
-                .withSubject(username)
-                .withExpiresAt(Date.from(generateExpirationHours(24)))
-                .sign(algorithm);
-    }
-
-    private Instant generateExpirationHours(int amount) {
-        return Instant.now().plus(amount, ChronoUnit.HOURS);
-    }
-}
-```
-
-### 2.2 Serviço de Usuário
-```
-package dev.marcos.spring_security.service;
-
-import dev.marcos.spring_security.dto.user.UserRequestDTO;
-import dev.marcos.spring_security.dto.user.UserResponseDTO;
-import dev.marcos.spring_security.dto.user.UserUpdateRequestDTO;
-import dev.marcos.spring_security.entity.User;
-import dev.marcos.spring_security.entity.enums.Role;
-import dev.marcos.spring_security.exception.ConflictException;
-import dev.marcos.spring_security.exception.NotFoundException;
-import dev.marcos.spring_security.mapper.UserMapper;
-import dev.marcos.spring_security.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
-
-@Service
-@RequiredArgsConstructor
-public class UserService implements UserDetailsService {
-
-    private final UserRepository userRepository;
-
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException("User not found with username: " + username));
-    }
-}
-```
-
-### 2.3 Filtro de Segurança
-```
-package dev.marcos.spring_security.security;
-
-import dev.marcos.spring_security.service.TokenService;
-import dev.marcos.spring_security.service.UserService;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
-
-import java.io.IOException;
-import java.util.Optional;
-
-@Component
-@RequiredArgsConstructor
-public class SecurityFilter extends OncePerRequestFilter {
-
-    private final TokenService tokenService;
-    private final UserService userService;
-    private final HandlerExceptionResolver handlerExceptionResolver;
-
-    @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request,
-                                    @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
-
-        try {
-            Optional<String> token = extractToken(request);
-
-            if (token.isPresent()) {
-                String subject = tokenService.validateToken(token.get());
-
-                UserDetails user = userService.loadUserByUsername(subject);
-
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        user,
-                        null,
-                        user.getAuthorities()
-                );
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
-        } catch (Exception e) {
-            handlerExceptionResolver.resolveException(request, response, null, e);
-            return;
-        }
-
-        filterChain.doFilter(request, response);
-    }
-
-    private Optional<String> extractToken(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-
-        if (authHeader == null) {
-            return Optional.empty();
-        }
-
-        return Optional.of(authHeader.replace("Bearer ", ""));
-    }
-}
-```
-
-### 2.4 Configuração Principal
-```
-package dev.marcos.spring_security.config;
-
-import dev.marcos.spring_security.security.CustomAccessDeniedHandler;
-import dev.marcos.spring_security.security.CustomAuthenticationEntryPoint;
-import dev.marcos.spring_security.security.SecurityFilter;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-@Configuration
-@EnableWebSecurity
-@EnableMethodSecurity
-@RequiredArgsConstructor
-public class SecurityConfig {
-
-    private final SecurityFilter securityFilter;
-    private final CustomAccessDeniedHandler customAccessDeniedHandler;
-    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-
-    @Bean
-    protected SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http.
-                csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorize -> authorize
-                        // Public endpoints
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/users").permitAll()
-
-                        // ADMIN only operations
-                        .requestMatchers(HttpMethod.GET, "/api/users").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("ROLE_ADMIN")
-
-                        // ADMIN or USER operations
-                        .anyRequest().authenticated()
-                )
-                .exceptionHandling(exception ->
-                        exception
-                                .accessDeniedHandler(customAccessDeniedHandler)
-                                .authenticationEntryPoint(customAuthenticationEntryPoint))
-                .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-}
-```
-
-## 3. 📂 Estrutura de diretórios
+## Estrutura de diretórios
 ```
 src/main/java/dev/marcos/spring_security/
 ├── config/
-│   └── SecurityConfig.java         <-- Configuração central de segurança
+│   └── SecurityConfig.java        <-- Configuração central de segurança
 ├── controller/
+├── dto/
 ├── entity/
 │   └── User.java                  <-- Implementação do UserDetails
 ├── exception/
 │   └── (Handlers de Exceção)
+├── mapper/
 ├── repository/
 ├── security/
 │   └── SecurityFilter.java         <-- Filtro de validação de JWT
